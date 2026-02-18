@@ -68,7 +68,14 @@ app.get("/admin.html", (req, res) => {
 // Admin route to add a promo ID
 app.post("/admin/add-promo", async (req, res) => {
   const { promoId } = req.body;
+
+  // Validation: must exist
   if (!promoId) return res.status(400).send("Promo ID is required");
+
+  // Validation: numeric only and no spaces
+  if (!/^\d+$/.test(promoId)) {
+    return res.status(400).send("Promo ID must be numeric and contain no spaces");
+  }
 
   try {
     const { content, sha } = await getGitHubFile();
@@ -81,8 +88,7 @@ app.post("/admin/add-promo", async (req, res) => {
       /(const PROMO_LIST = \[[\s\S]*?\])/,
       (match) => {
         let trimmed = match.trim();
-        // Remove the closing bracket
-        trimmed = trimmed.slice(0, -1);
+        trimmed = trimmed.slice(0, -1); // remove closing bracket
         return `${trimmed}, "${promoId}"]`;
       }
     );
