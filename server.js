@@ -19,7 +19,7 @@ const {
   GITHUB_FILE_PATH,
   TELEGRAM_BOT_TOKEN,
   ADMIN_ID,
-  ADMIN_PASSWORD // <-- new environment variable for password
+  ADMIN_PASSWORD
 } = process.env;
 
 // Function to send Telegram messages
@@ -70,42 +70,80 @@ app.get("/admin.html", (req, res) => {
 app.post("/admin/add-promo", async (req, res) => {
   const { promoId, password } = req.body;
 
-  // Admin password check
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!password || password !== ADMIN_PASSWORD)
     return res.status(403).send("Invalid admin password");
-  }
 
-  // Validation: must exist
   if (!promoId) return res.status(400).send("Promo ID is required");
+  const trimmedId = promoId.trim();
 
-  // Validation: numeric only and no spaces
-  if (!/^\d+$/.test(promoId)) {
+  if (!/^\d+$/.test(trimmedId))
     return res.status(400).send("Promo ID must be numeric and contain no spaces");
-  }
 
   try {
     const { content, sha } = await getGitHubFile();
 
-    // Make sure the promo isn't already added
-    if (content.includes(`"${promoId}"`)) return res.status(400).send("Promo already exists");
+    // Extract current IDs
+    const ids = content
+      .replace(/const PROMO_LIST = \[|\];/g, '')
+      .split(',')
+      .map(id => id.trim().replace(/"/g, ''))
+      .filter(id => id);
 
-    // Append the new promo ID at the end of the array
-    const newContent = content.replace(
-      /(const PROMO_LIST = \[[\s\S]*?\])/,
-      (match) => {
-        let trimmed = match.trim();
-        trimmed = trimmed.slice(0, -1); // remove closing bracket
-        return `${trimmed}, "${promoId}"]`;
-      }
-    );
+    if (ids.includes(trimmedId)) return res.status(400).send("Promo already exists");
+
+    ids.push(trimmedId);
+
+    // Rebuild the array cleanly
+    const newContent = `const PROMO_LIST = [\n  ${ids.map(id => `"${id}"`).join(',\n  ')}\n];`;
 
     await updateGitHubFile(newContent, sha);
 
-    // Notify admin and promo owner
-    await sendTelegramMessage(ADMIN_ID, `New promo added: ${promoId}`);
-    await sendTelegramMessage(promoId, `Your promo ID has been added successfully.`);
+    await sendTelegramMessage(ADMIN_ID, `New promo added: ${trimmedId}`);
+    await sendTelegramMessage(trimmedId, `Your promo ID has been added successfully.`);
 
     res.send("Promo added successfully");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating promo list");
+  }
+});
+
+// Admin route to remove a promo ID
+app.post("/admin/remove-promo", async (req, res) => {
+  const { promoId, password } = req.body;
+
+  if (!password || password !== ADMIN_PASSWORD)
+    return res.status(403).send("Invalid admin password");
+
+  if (!promoId) return res.status(400).send("Promo ID is required");
+  const trimmedId = promoId.trim();
+
+  if (!/^\d+$/.test(trimmedId))
+    return res.status(400).send("Promo ID must be numeric and contain no spaces");
+
+  try {
+    const { content, sha } = await getGitHubFile();
+
+    // Extract current IDs
+    let ids = content
+      .replace(/const PROMO_LIST = \[|\];/g, '')
+      .split(',')
+      .map(id => id.trim().replace(/"/g, ''))
+      .filter(id => id);
+
+    if (!ids.includes(trimmedId)) return res.status(400).send("Promo ID not found");
+
+    ids = ids.filter(id => id !== trimmedId);
+
+    // Rebuild the array cleanly
+    const newContent = `const PROMO_LIST = [\n  ${ids.map(id => `"${id}"`).join(',\n  ')}\n];`;
+
+    await updateGitHubFile(newContent, sha);
+
+    await sendTelegramMessage(ADMIN_ID, `Promo removed: ${trimmedId}`);
+    await sendTelegramMessage(trimmedId, `Your promo ID has been removed.`);
+
+    res.send("Promo removed successfully");
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating promo list");
