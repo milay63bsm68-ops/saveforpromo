@@ -2,24 +2,82 @@
 <html>
 <head>
   <title>Admin Portal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f2f5;
+      padding: 20px;
+    }
+    h2 {
+      color: #333;
+    }
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      width: 250px;
+    }
+    button {
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <h2>Add Promo ID</h2>
+
   <input type="text" id="promoId" placeholder="Enter Promo ID">
+  <br>
+  <input type="password" id="adminPassword" placeholder="Enter Admin Password">
+  <br>
   <button onclick="addPromo()">Add Promo</button>
 
   <p id="status"></p>
 
   <script>
     async function addPromo() {
-      const promoId = document.getElementById("promoId").value;
-      const res = await fetch("/admin/add-promo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promoId })
-      });
-      const text = await res.text();
-      document.getElementById("status").innerText = text;
+      const promoId = document.getElementById("promoId").value.trim();
+      const password = document.getElementById("adminPassword").value.trim();
+
+      if (!promoId) {
+        document.getElementById("status").innerText = "Promo ID cannot be empty.";
+        return;
+      }
+
+      if (!/^\d+$/.test(promoId)) {
+        document.getElementById("status").innerText = "Promo ID must be numeric and contain no spaces.";
+        return;
+      }
+
+      if (!password) {
+        document.getElementById("status").innerText = "Admin password is required.";
+        return;
+      }
+
+      // Disable button to prevent multiple clicks
+      const button = document.querySelector("button");
+      button.disabled = true;
+      button.innerText = "Adding...";
+
+      try {
+        const res = await fetch("/admin/add-promo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ promoId, password })
+        });
+
+        const text = await res.text();
+        document.getElementById("status").innerText = text;
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: Could not add promo.";
+        console.error(err);
+      } finally {
+        button.disabled = false;
+        button.innerText = "Add Promo";
+      }
     }
   </script>
 </body>
