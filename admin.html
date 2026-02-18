@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Portal</title>
+</head>
+<body>
+  <h2>Add Promo ID</h2>
+  <input type="text" id="promoId" placeholder="Enter Promo ID">
+  <button onclick="addPromo()">Add Promo</button>
+
+  <p id="status"></p>
+
+  <script>
+    async function addPromo() {
+      const promoId = document.getElementById("promoId").value;
+      const res = await fetch("/admin/add-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ promoId })
+      });
+      const text = await res.text();
+      document.getElementById("status").innerText = text;
+    }
+  </script>
+</body>
+</html>
