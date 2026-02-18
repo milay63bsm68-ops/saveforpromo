@@ -1,82 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Portal</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promo Admin Portal</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f0f2f5;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
       padding: 20px;
     }
+    .container {
+      background: #fff;
+      padding: 25px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
     h2 {
+      text-align: center;
       color: #333;
+      margin-bottom: 20px;
     }
     input {
-      padding: 8px;
-      margin: 5px 0;
-      width: 250px;
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      box-sizing: border-box;
     }
     button {
-      padding: 8px 15px;
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 5px 0 0;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
+      color: #fff;
     }
+    button#addBtn { background-color: #28a745; }
+    button#removeBtn { background-color: #dc3545; }
+    button:disabled { background-color: #888; cursor: not-allowed; }
     #status {
-      margin-top: 10px;
+      margin-top: 15px;
       font-weight: bold;
+      text-align: center;
+      color: #555;
+      word-wrap: break-word;
     }
   </style>
 </head>
 <body>
-  <h2>Add Promo ID</h2>
+  <div class="container">
+    <h2>Promo Admin Portal</h2>
 
-  <input type="text" id="promoId" placeholder="Enter Promo ID">
-  <br>
-  <input type="password" id="adminPassword" placeholder="Enter Admin Password">
-  <br>
-  <button onclick="addPromo()">Add Promo</button>
+    <label for="promoId">Promo ID</label>
+    <input type="text" id="promoId" placeholder="Enter Promo ID">
 
-  <p id="status"></p>
+    <label for="adminPassword">Admin Password</label>
+    <input type="password" id="adminPassword" placeholder="Enter Admin Password">
+
+    <div style="display:flex; justify-content: space-between;">
+      <button id="addBtn" onclick="addPromo()">Add Promo</button>
+      <button id="removeBtn" onclick="removePromo()">Remove Promo</button>
+    </div>
+
+    <p id="status"></p>
+  </div>
 
   <script>
-    async function addPromo() {
-      const promoId = document.getElementById("promoId").value.trim();
-      const password = document.getElementById("adminPassword").value.trim();
+    async function addPromo() { await handlePromo('/admin/add-promo', 'add'); }
+    async function removePromo() { await handlePromo('/admin/remove-promo', 'remove'); }
 
-      if (!promoId) {
-        document.getElementById("status").innerText = "Promo ID cannot be empty.";
-        return;
-      }
+    async function handlePromo(endpoint, action) {
+      const promoId = document.getElementById('promoId').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const status = document.getElementById('status');
+      const button = action === 'add' ? document.getElementById('addBtn') : document.getElementById('removeBtn');
 
-      if (!/^\d+$/.test(promoId)) {
-        document.getElementById("status").innerText = "Promo ID must be numeric and contain no spaces.";
-        return;
-      }
+      if (!promoId) { status.innerText = 'Promo ID cannot be empty.'; return; }
+      if (!/^\d+$/.test(promoId)) { status.innerText = 'Promo ID must be numeric and contain no spaces.'; return; }
+      if (!password) { status.innerText = 'Admin password is required.'; return; }
 
-      if (!password) {
-        document.getElementById("status").innerText = "Admin password is required.";
-        return;
-      }
-
-      // Disable button to prevent multiple clicks
-      const button = document.querySelector("button");
       button.disabled = true;
-      button.innerText = "Adding...";
+      button.innerText = action === 'add' ? 'Adding...' : 'Removing...';
 
       try {
-        const res = await fetch("/admin/add-promo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ promoId, password })
         });
-
         const text = await res.text();
-        document.getElementById("status").innerText = text;
+        status.innerText = text;
       } catch (err) {
-        document.getElementById("status").innerText = "Error: Could not add promo.";
         console.error(err);
+        status.innerText = 'Error: Could not process request.';
       } finally {
         button.disabled = false;
-        button.innerText = "Add Promo";
+        button.innerText = action === 'add' ? 'Add Promo' : 'Remove Promo';
       }
     }
   </script>
