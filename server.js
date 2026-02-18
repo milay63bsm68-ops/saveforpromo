@@ -2,11 +2,16 @@ import express from "express";
 import fetch from "node-fetch";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const {
   GITHUB_TOKEN,
@@ -54,6 +59,11 @@ async function updateGitHubFile(newContent, sha) {
   });
   return res.json();
 }
+
+// Serve admin.html
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
 
 // Admin route to add a promo ID
 app.post("/admin/add-promo", async (req, res) => {
