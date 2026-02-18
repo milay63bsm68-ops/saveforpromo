@@ -18,7 +18,8 @@ const {
   GITHUB_REPO,
   GITHUB_FILE_PATH,
   TELEGRAM_BOT_TOKEN,
-  ADMIN_ID
+  ADMIN_ID,
+  ADMIN_PASSWORD // <-- new environment variable for password
 } = process.env;
 
 // Function to send Telegram messages
@@ -67,7 +68,12 @@ app.get("/admin.html", (req, res) => {
 
 // Admin route to add a promo ID
 app.post("/admin/add-promo", async (req, res) => {
-  const { promoId } = req.body;
+  const { promoId, password } = req.body;
+
+  // Admin password check
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(403).send("Invalid admin password");
+  }
 
   // Validation: must exist
   if (!promoId) return res.status(400).send("Promo ID is required");
